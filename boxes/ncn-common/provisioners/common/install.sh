@@ -87,3 +87,14 @@ function setup_python {
     rm -f /usr/local/bin/pip3
 }
 setup_python
+
+function cloud {
+    echo 'Setting cloud-init config'
+    local base=/etc/cloud
+
+    # Copy the base config.
+    # Clean out any pre-existing configs; nothing should exist in the ncn-common layer here.
+    mkdir -pv $base || echo "$base already exists"
+    cp -pv /srv/cray/resources/common/cloud.cfg ${base}/
+}
+cloud

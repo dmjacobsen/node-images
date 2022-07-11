@@ -1,7 +1,7 @@
 service:
   kdump:
     enabled: true
-    running: false
+    running: true
   kdump-early:
     enabled: true
-    running: false
+    running: true
