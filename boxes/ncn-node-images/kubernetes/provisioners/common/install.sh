@@ -96,9 +96,11 @@ modprobe br_netfilter
 
 echo "Installing kubernetes python client"
 pip3 install --ignore-installed PyYAML
-KUBELET_VER=$(rpm -qa | grep kubelet |  awk -F '-' '{print $2}')
-K8S_MINOR_VERSION=$(echo $KUBELET_VER | awk -F '.' '{print $2}')
-pip3 install "kubernetes==${K8S_MINOR_VERSION}.*" --upgrade
+#
+# CSM 1.2 shipped with 23.6.0, so we need equal to
+# or greater than that version
+#
+pip3 install "kubernetes<=23.6.0" --upgrade
 
 echo "Setting TasksMax to infinity via 10-kubelet.conf file"
 mkdir -p /etc/systemd/system/kubelet.service.d
