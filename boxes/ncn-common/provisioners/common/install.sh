@@ -83,5 +83,7 @@ function setup_python {
             "virtualenv==$virtualenv_ver" \
             "wheel==$wheel_ver" 
     done
+    echo 'Removing /usr/local/bin/pip3 to ensure /usr/bin/pip3 is preferred in the $PATH'
+    rm -f /usr/local/bin/pip3
 }
 setup_python
