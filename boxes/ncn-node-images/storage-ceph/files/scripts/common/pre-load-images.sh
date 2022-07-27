@@ -42,6 +42,7 @@ podman image load -i /srv/cray/resources/common/images/prometheus_v2.18.1.tar
 podman tag registry.local/prometheus/prometheus:v2.18.1  artifactory.algol60.net/csm-docker/stable/prometheus/prometheus:v2.18.1
 podman tag registry.local/prometheus/prometheus:v2.18.1  localhost:5000/prometheus/prometheus:v2.18.1
 podman tag registry.local/prometheus/prometheus:v2.18.1  localhost:5000/quay.io/prometheus/prometheus:v2.18.1
+podman tag registry.local/prometheus/prometheus:v2.18.1  registry.local/quay.io/prometheus/prometheus:v2.18.1
 
 podman image load -i /srv/cray/resources/common/images/alertmanager_v0.20.0.tar
 podman tag registry.local/prometheus/alertmanager:v0.20.0 localhost:5000/quay.io/prometheus/alertmanager:v0.20.0
