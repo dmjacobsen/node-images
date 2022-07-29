@@ -26,6 +26,28 @@
 
 set -ex
 
+# Ensure that only the desired kernel version may be installed.
+# Clean up old kernels, if any. We should only ship with a single kernel.
+# Lock the kernel to prevent inadvertent updates.
+function kernel {
+    local current_kernel
+
+    # Grab this from csm-rpms, the running kernel may not match the kernel we installed and want until the image is rebooted.
+    # This ensures we lock to what we want installed.
+    current_kernel="$(grep kernel-default /srv/cray/csm-rpms/packages/node-image-non-compute-common/base.packages | awk -F '=' '{print $NF}')"
+
+    echo "Purging old kernels ... "
+    sed -i 's/^multiversion.kernels =.*/multiversion.kernels = '"${current_kernel}"'/g' /etc/zypp/zypp.conf
+    zypper --non-interactive purge-kernels --details
+
+    echo "Locking the kernel to ${current_kernel}"
+    zypper addlock kernel-default && zypper locks
+        
+    echo "Listing currently installed kernel-default RPM:"
+    rpm -qa | grep kernel-default
+}
+kernel
+
 echo "removing our autoyast cache to ensure no lingering sensitive content remains there from install"
 rm -rf /var/adm/autoinstall/cache
 

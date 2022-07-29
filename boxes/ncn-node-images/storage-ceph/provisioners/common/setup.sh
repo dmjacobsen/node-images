@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2021-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -24,16 +24,19 @@
 #
 set -ex
 
-REQUIREMENTS=( requests )
-PYTHON_VERSION=${PYTHON_VERSION:-/usr/bin/python3.9}
+cp -rpv /srv/cray/resources/common/ansible/* /etc/ansible/
 
-echo "Installing GCP Python Environment"
-mkdir -pv /etc/ansible
-$PYTHON_VERSION -m venv /etc/ansible/gcp
-. /etc/ansible/gcp/bin/activate
+ANSIBLE_VERSION=${ANSIBLE_VERSION:-2.11.10}
+PYTHON_VERSION=/usr/bin/python3.6
+REQUIREMENTS=( boto3 netaddr )
+
+echo "Installing Ceph Ansible ($ANSIBLE_VERSION) with system-site-packages (e.g. pip)"
+$PYTHON_VERSION -m venv /etc/ansible/boto3_ansible
+. /etc/ansible/boto3_ansible/bin/activate
+python3 -m pip install ansible-core==$ANSIBLE_VERSION ansible
 
 echo "Installing requirements: ${REQUIREMENTS[@]}"
-for requirement in "${REQUIREMENTS[@]}"; do
-    pip3 install "$requirement"
+for requirement in ${REQUIREMENTS[@]}; do
+    python3 -m pip install -U $requirement
 done
 deactivate

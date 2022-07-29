@@ -1,48 +1,3 @@
-source "virtualbox-iso" "sles15-base" {
-  boot_command = [
-    "<esc><enter><wait>",
-    "linux netdevice=eth0 netsetup=dhcp install=cd:/<wait>",
-    " lang=en_US autoyast=http://{{ .HTTPIP }}:{{ .HTTPPort }}/autoinst.xml<wait>",
-    " textmode=1 password=${var.ssh_password}<wait>",
-    "<enter><wait>"
-  ]
-  boot_wait            = "${var.boot_wait}"
-  cpus                 = "${var.cpus}"
-  memory               = "${var.memory}"
-  disk_size            = "${var.vbox_disk_size}"
-  format               = "${var.vbox_format}"
-  guest_additions_path = "VBoxGuestAdditions_{{ .Version }}.iso"
-  guest_os_type        = "OpenSUSE_64"
-  hard_drive_interface = "sata"
-  headless             = "${var.headless}"
-  http_directory       = "${path.root}/http"
-  iso_checksum         = "${var.source_iso_checksum}"
-  iso_url              = "${var.source_iso_uri}"
-  sata_port_count      = 8
-  shutdown_command     = "echo '${var.ssh_password}'|/sbin/halt -h -p"
-  ssh_password         = "${var.ssh_password}"
-  ssh_port             = 22
-  ssh_username         = "${var.ssh_username}"
-  ssh_wait_timeout     = "${var.ssh_wait_timeout}"
-  output_directory     = "${var.output_directory}"
-  output_filename      = "${var.image_name}"
-  vboxmanage           = [
-    [
-      "modifyvm",
-      "{{ .Name }}",
-      "--memory",
-      "${var.memory}"
-    ],
-    [
-      "modifyvm",
-      "{{ .Name }}",
-      "--cpus",
-      "${var.cpus}"
-    ]
-  ]
-  virtualbox_version_file = ".vbox_version"
-}
-
 source "qemu" "sles15-base" {
   boot_command = [
     "<esc><enter><wait>",
@@ -109,13 +64,58 @@ source "qemu" "sles15-google" {
   vm_name             = "${var.image_name}-google.${var.qemu_format}"
 }
 
+source "virtualbox-iso" "sles15-base" {
+  boot_command = [
+    "<esc><enter><wait>",
+    "linux netdevice=eth0 netsetup=dhcp install=cd:/<wait>",
+    " lang=en_US autoyast=http://{{ .HTTPIP }}:{{ .HTTPPort }}/autoinst.xml<wait>",
+    " textmode=1 password=${var.ssh_password}<wait>",
+    "<enter><wait>"
+  ]
+  boot_wait            = "${var.boot_wait}"
+  cpus                 = "${var.cpus}"
+  memory               = "${var.memory}"
+  disk_size            = "${var.vbox_disk_size}"
+  format               = "${var.vbox_format}"
+  guest_additions_path = "VBoxGuestAdditions_{{ .Version }}.iso"
+  guest_os_type        = "OpenSUSE_64"
+  hard_drive_interface = "sata"
+  headless             = "${var.headless}"
+  http_directory       = "${path.root}/http"
+  iso_checksum         = "${var.source_iso_checksum}"
+  iso_url              = "${var.source_iso_uri}"
+  sata_port_count      = 8
+  shutdown_command     = "echo '${var.ssh_password}'|/sbin/halt -h -p"
+  ssh_password         = "${var.ssh_password}"
+  ssh_port             = 22
+  ssh_username         = "${var.ssh_username}"
+  ssh_wait_timeout     = "${var.ssh_wait_timeout}"
+  output_directory     = "${var.output_directory}"
+  output_filename      = "${var.image_name}"
+  vboxmanage           = [
+    [
+      "modifyvm",
+      "{{ .Name }}",
+      "--memory",
+      "${var.memory}"
+    ],
+    [
+      "modifyvm",
+      "{{ .Name }}",
+      "--cpus",
+      "${var.cpus}"
+    ]
+  ]
+  virtualbox_version_file = ".vbox_version"
+}
+
 build {
   sources = [
     "source.virtualbox-iso.sles15-base",
     "source.qemu.sles15-google",
     "source.qemu.sles15-base"
   ]
-  
+
   provisioner "shell" {
     script = "${path.root}/provisioners/common/setup.sh"
   }
@@ -126,12 +126,12 @@ build {
 
   provisioner "shell" {
     script = "${path.root}/provisioners/google/install.sh"
-    only = ["qemu.sles15-google"]
+    only   = ["qemu.sles15-google"]
   }
 
   provisioner "shell" {
     script = "${path.root}/provisioners/virtualbox/install.sh"
-    only = ["virtualbox-iso.sles15-base"]
+    only   = ["virtualbox-iso.sles15-base"]
   }
 
   provisioner "shell" {
@@ -140,7 +140,7 @@ build {
 
   provisioner "shell" {
     script = "${path.root}/provisioners/metal/cleanup.sh"
-    only = ["qemu.sles15-base"]
+    only   = ["qemu.sles15-base"]
   }
 
   post-processors {

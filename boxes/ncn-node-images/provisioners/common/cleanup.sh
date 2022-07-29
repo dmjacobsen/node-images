@@ -2,6 +2,17 @@
 
 set -ex
 
+echo "remove /etc/shadow entry for root"
+seconds_per_day=$(( 60*60*24 ))
+days_since_1970=$(( $(date +%s) / seconds_per_day ))
+sed -i "/^root:/c\root:\*:$days_since_1970::::::" /etc/shadow
+
+echo "remove root's .ssh directory"
+rm -rvf /root/.ssh
+
+echo "remove ssh host keys"
+rm -fv /etc/ssh/ssh_host*
+
 echo "removing our autoyast cache to ensure no lingering sensitive content remains there from install"
 rm -rf /var/adm/autoinstall/cache
 

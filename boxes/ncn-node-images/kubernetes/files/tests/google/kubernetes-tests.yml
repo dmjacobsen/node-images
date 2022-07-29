@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# (C) Copyright 2014-2022 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -22,15 +22,6 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 service:
-  cloud-config:
-    enabled: true
-    running: false
-  cloud-init:
-    enabled: true
-    running: false
-  cloud-final:
-    enabled: true
-    running: false
-  cloud-init-local:
-    enabled: true
+  nginx:
+    enabled: false
     running: false

@@ -22,42 +22,75 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-set -exu
+set -ex
 
-# Find device and partition of /
-cd /
-df . | tail -n 1 | tr -s " " | cut -d " " -f 1 | sed -E -e 's/^([^0-9]+)([0-9]+)$/\1 \2/' |
-if read DEV_DISK DEV_PARTITION_NR && [ -n "$DEV_PARTITION_NR" ]; then
-  echo "Expanding $DEV_DISK partition $DEV_PARTITION_NR";
-  sgdisk --move-second-header
-  sgdisk --delete=${DEV_PARTITION_NR} "$DEV_DISK"
-  sgdisk --new=${DEV_PARTITION_NR}:0:0 --typecode=0:8e00 ${DEV_DISK}
-  partprobe "$DEV_DISK"
+function resize_root {
+    local dev_disk
+    local dev_partition_nr
 
-  if ! resize2fs "$DEV_DISK"; then
-      if ! xfs_growfs ${DEV_DISK}${DEV_PARTITION_NR}; then
-          echo >&2 "Neither resize2fs nor xfs_growfs could resize the device. Potential filesystem mismatch on [$DEV_DISK]."
-          lsblk "$DEV_DISK"
-      fi
-  fi
-fi
+    # Find device and partition of /
+    cd /
+    df . | tail -n 1 | tr -s " " | cut -d " " -f 1 | sed -E -e 's/^([^0-9]+)([0-9]+)$/\1 \2/' |
+    if read dev_disk dev_partition_nr && [ -n "$dev_partition_nr" ]; then
+        echo "Expanding $dev_disk partition $dev_partition_nr";
+        sgdisk --move-second-header
+        sgdisk --delete=${dev_partition_nr} "$dev_disk"
+        sgdisk --new=${dev_partition_nr}:0:0 --typecode=0:8e00 ${dev_disk}
+        partprobe "$dev_disk"
 
-set +u
+        if ! resize2fs "$dev_disk"; then
+            if ! xfs_growfs ${dev_disk}${dev_partition_nr}; then
+                echo >&2 "Neither resize2fs nor xfs_growfs could resize the device. Potential filesystem mismatch on [$dev_disk]."
+                lsblk "$dev_disk"
+            fi
+        fi
+    fi
+    cd -
+}
+resize_root
 
-ANSIBLE_VERSION=${ANSIBLE_VERSION:-2.11.10}
-REQUIREMENTS=( boto3 netaddr )
+# Install generic Python tools; ensures both the default python and any other installed python system versions have 
+# basic buildtools.
+# NOTE: /usr/bin/python3 should point to the Python 3 version installed by python3.rpm, this is set in metal-provision.
+function setup_python {
+    local pythons
 
-echo "Installing CSM Ansible $ANSIBLE_VERSION"
-pip3 install --upgrade virtualenv
-mkdir -pv /etc/ansible
-python3 -m venv /etc/ansible/csm_ansible
-. /etc/ansible/csm_ansible/bin/activate
-pip3 install --upgrade pip
-pip3 install ansible-core==$ANSIBLE_VERSION
-pip3 install ansible
+    local        pip_ver='21.3.1'
+    local      build_ver='0.8.0'
+    local setuptools_ver='59.6.0'
+    local      wheel_ver='0.37.1'
+    local virtualenv_ver='20.15.1'
 
-echo "Installing requirements: ${REQUIREMENTS[@]}"
-for requirement in ${REQUIREMENTS[@]}; do
-    pip3 install $requirement
-done
-deactivate
+    readarray -t pythons < <(find /usr/bin/ -regex '.*python3\.[0-9]+')
+    printf 'Discovered [%s] python binaries: %s\n' "${#pythons[@]}" "${pythons[*]}"
+    for python in "${pythons[@]}"; do
+        $python -m pip install -U "pip==$pip_ver" || $python -m ensurepip
+        $python -m pip install -U \
+            "build==$build_ver" \
+            "setuptools==$setuptools_ver" \
+            "virtualenv==$virtualenv_ver" \
+            "wheel==$wheel_ver" 
+    done
+    echo 'Removing /usr/local/bin/pip3 to ensure /usr/bin/pip3 is preferred in the $PATH'
+    rm -f /usr/local/bin/pip3
+}
+setup_python
+
+function install_ansible {
+    local ansible_version=${ANSIBLE_VERSION:-2.11.10}
+    local python_version=${PYTHON_VERSION:-/usr/bin/python3.9}
+    local requirements=( boto3 netaddr )
+    
+    echo "Installing CSM Ansible $ansible_version"
+    mkdir -pv /etc/ansible
+    $python_version -m venv /etc/ansible/csm_ansible
+    . /etc/ansible/csm_ansible/bin/activate
+    python3 -m pip install ansible-core==$ansible_version ansible
+    
+    echo "Installing requirements: ${requirements[@]}"
+    for requirement in ${requirements[@]}; do
+        python3 -m pip install -U $requirement
+    done
+    deactivate
+}
+install_ansible

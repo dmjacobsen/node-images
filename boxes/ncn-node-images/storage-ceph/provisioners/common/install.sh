@@ -37,17 +37,6 @@ echo "Creating directory for caching podman images"
 image_dir="/srv/cray/resources/common/images/"
 mkdir -p $image_dir
 
-mv /srv/cray/resources/common/ansible/* /etc/ansible/
-
-echo "Installing New Ansible Env"
-python3 -m venv /etc/ansible/boto3_ansible
-. /etc/ansible/boto3_ansible/bin/activate
-pip3 install --upgrade pip
-pip3 install ansible
-pip3 install boto3
-pip3 install netaddr
-deactivate
-
 sed  '/pull_policy/s/^# //' -i /usr/share/containers/containers.conf
 
 cat > /etc/systemd/system/registry.container.service <<'EOF'
