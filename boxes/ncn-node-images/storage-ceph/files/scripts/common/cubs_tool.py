@@ -271,8 +271,12 @@ def main():
   if (args.version is not None and (args.registry is not None and args.upgrade is False)):
     init_connect()
     current_version = fetch_base_current_vers()
-    upgrade_check(pretty_version, args.registry, current_version, args.quiet)
+    upgrade_check_success = upgrade_check(pretty_version, args.registry, current_version, args.quiet)
     disconnect()
+    if upgrade_check_success:
+      exit(0)
+    else:
+      exit(1)
 
   elif (args.registry is not None and (args.version is not None or args.upgrade is True)):
     init_connect()    
@@ -281,21 +285,26 @@ def main():
     upgrade_proceed = upgrade_check(pretty_version, args.registry, current_version, args.quiet)
     if upgrade_proceed:
       upgrade_success = upgrade_execute(base_version, args.registry, upgrade_cmd, current_version, services, args.quiet)
+      disconnect()
       if upgrade_success:
-        disconnect()
         exit(0)
       else:
-        disconnect()
         exit(1)
+    else:
+      disconnect()
+      exit(2)
 
   elif (args.version is not None and args.registry is None):
     print ("The --version option requires --registry option")
+    exit(2)
 
   elif (args.registry is not None and (args.version is None or args.upgrade is True)):
     print ("The registry flag requires --version and/or --upgrade to be set")
+    exit(2)
 
   elif (args.upgrade and (args.version is None or args.registry is None)):
     print ("Upgrade requires both --registry and --version to be set")
+    exit(2)
 
 if __name__ == '__main__':
     main()
