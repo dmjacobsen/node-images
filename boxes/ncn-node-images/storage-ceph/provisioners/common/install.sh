@@ -66,7 +66,7 @@ cat > /etc/containers/registries.conf <<'EOF'
 # i.e. foobar.com/my_image:latest vs my_image:latest
 [registries.search]
 registries = []
-unqualified-search-registries = ["registry.local", "docker.io"]
+unqualified-search-registries = ["registry.local", "localhost"]
 
 # Registries that do not use TLS when pulling images or uses self-signed
 # certificates.

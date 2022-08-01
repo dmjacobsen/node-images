@@ -94,3 +94,9 @@ function install_ansible {
     deactivate
 }
 install_ansible
+
+mkdir -pv /opt/cray/csm/scripts/csm_rbd_tool
+virtualenv --system-site-packages /opt/cray/csm/scripts/csm_rbd_tool -p 3.6
+.  /opt/cray/csm/scripts/csm_rbd_tool/bin/activate
+pip3 install fabric
+deactivate
