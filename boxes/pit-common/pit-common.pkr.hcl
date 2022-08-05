@@ -254,18 +254,18 @@ build {
   post-processors {
     post-processor "shell-local" {
       inline = [
-        "if grep '<failure>' ${var.output_directory}/test-results.xml ; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
+        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
       ]
     }
     post-processor "shell-local" {
       inline = [
-        "if grep '<failure>' ${var.output_directory}/test-results-google.xml ; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
+        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-google.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
       ]
       only = ["googlecompute.pit-common"]
     }
     post-processor "shell-local" {
       inline = [
-        "if grep '<failure>' ${var.output_directory}/test-results-metal.xml ; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
+        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-metal.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
       ]
       only = ["qemu.pit-common", "virtualbox-ovf.ncn-common"]
     }

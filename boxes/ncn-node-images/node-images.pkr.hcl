@@ -489,22 +489,22 @@ build {
   post-processors {
     post-processor "shell-local" {
       inline = [
-        "if grep '<failure>' ${var.output_directory}/test-results-common.xml ; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi",
-        "if grep '<failure>' ${var.output_directory}/test-results-${source.name}.xml ; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
+        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-common.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi",
+        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-${source.name}.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
       ]
     }
     post-processor "shell-local" {
       inline = [
-        "if grep '<failure>' ${var.output_directory}/test-results-ncn-google.xml ; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi",
-        "if grep '<failure>' ${var.output_directory}/test-results-${source.name}-google.xml ; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
+        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-ncn-google.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi",
+        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-${source.name}-google.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
       ]
       only = ["googlecompute.kubernetes"]
       #      only = ["googlecompute.kubernetes", "googlecompute.storage-ceph"]
     }
     post-processor "shell-local" {
       inline = [
-        "if grep '<failure>' ${var.output_directory}/test-results-ncn-metal.xml ; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi",
-        "if grep '<failure>' ${var.output_directory}/test-results-${source.name}-metal.xml ; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
+        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-ncn-metal.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi",
+        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-${source.name}-metal.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
       ]
       only = [
         "qemu.kubernetes", "virtualbox-ovf.kubernetes", "qemu.storage-ceph",

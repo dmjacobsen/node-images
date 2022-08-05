@@ -21,13 +21,117 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
+file:
+  /etc/zypp/services.d/Basesystem_Module_15_SP2_x86_64.service:
+    exists: false
+  /etc/zypp/services.d/Server_Applications_Module_15_SP2_x86_64.service:
+    exists: false
+  /etc/zypp/services.d/Public_Cloud_Module_15_SP2_x86_64.service:
+    exists: false
+  /etc/zypp/services.d/SUSE_Linux_Enterprise_Server_15_SP2_x86_64.service:
+    exists: false
+  /var/adm/autoinstall/cache:
+    exists: false
+  /etc/ceph:
+    exists: true
+user:
+  sshd:
+    exists: true
+    groups:
+      - sshd
+    home: /var/lib/sshd
+    shell: /sbin/nologin
+group:
+  sshd:
+    exists: true
 service:
-  podman.service:
+  chronyd:
+    enabled: true
+    running: true
+  ca-certificates:
+    enabled: true
+    running: false
+  issue-generator:
+    enabled: true
+    running: false
+  ca-certificates:
+    enabled: true
+    running: false
+  issue-generator:
+    enabled: true
+    running: false
+  purge-kernels:
+    enabled: true
+    running: false
+  rc-local:
+    enabled: true
+    running: false
+  rollback:
+    enabled: true
+    running: false
+  sshd:
+    enabled: true
+    running: true
+  wicked:
+    enabled: true
+    running: true
+  wickedd-auto4:
+    enabled: true
+    running: true
+  wickedd-dhcp4:
+    enabled: true
+    running: true
+  wickedd-dhcp6:
+    enabled: true
+    running: true
+  wickedd-nanny:
+    enabled: true
+    running: true
+  getty@tty1:
+    enabled: true
+    running: true
+  spire-agent:
     enabled: false
     running: false
-  registry.container.service:
-    enabled: false
+process:
+  sshd:
+    running: true
+  dnsmasq:
     running: false
-  spire-agent.service:
-    enabled: false
+  cron:
+    running: true
+  dnsmasq:
     running: false
+package:
+  cephadm:
+    installed: true
+  ceph-common:
+    installed: true
+  python3:
+    installed: true
+  curl:
+    installed: true
+  craycli:
+    installed: true
+  dnsmasq:
+    installed: true
+  ethtool:
+    installed: true
+  hpe-csm-goss-package:
+    installed: true
+  hpe-csm-scripts:
+    installed: true
+  hpe-csm-yq-package:
+    installed: true
+  ipmitool:
+    installed: true
+  kubectl:
+    installed: true
+  openssl:
+    installed: true
+  podman:
+    installed: true
+  rsync:
+    installed: true
+  tar:
+    installed: true
