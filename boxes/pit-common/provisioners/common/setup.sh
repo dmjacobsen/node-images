@@ -30,7 +30,6 @@ ln -s $GOSS_BASE/automated/ncn-storage-checks /usr/bin/ncn-storage-checks
 echo "Initializing directories and resources"
 mkdir -pv /srv/cray
 cp -prv /tmp/files/* /srv/cray/ && rm -rf /tmp/files
-find /srv/cray/scripts -type f -name *.sh -exec chmod +x {} \+
 
 #======================================
 # Copy resources
