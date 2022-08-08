@@ -26,6 +26,36 @@
 set -ex
 
 ansible_version='2.9.21'
+
+# usage: cmd_retry <cmd> <arg1> ...
+#
+# Run the specified command until it passes or until it fails too many times
+function cmd_retry
+{
+    local -i attempt
+    # For now I'm hard coding these values, but it would be easy to make them into function
+    # arguments in the future, if desired
+    local -i max_attempts=10
+    local -i sleep_time=12
+    attempt=1
+    while [ true ]; do
+        # We redirect to stderr just in case the output of this command is being piped
+        echo "Attempt #$attempt to run: $*" 1>&2
+        if "$@" ; then
+            return 0
+        elif [ $attempt -lt $max_attempts ]; then
+           echo "Sleeping ${sleep_time} seconds before retry" 1>&2
+           sleep ${sleep_time}
+           attempt=$(($attempt + 1))
+           continue
+        fi
+        echo "ERROR: Unable to get $url even after retries" 1>&2
+        return 1
+    done
+    echo "PROGRAMMING LOGIC ERROR: This line should never be reached" 1>&2
+    exit 1
+}
+
 mkdir -p /etc/kubernetes
 echo "export KUBECONFIG=\"/etc/kubernetes/admin.conf\"" >> /etc/profile.d/cray.sh
 
@@ -138,44 +168,44 @@ systemctl start podman
 
 # Note to clean this up.  CASMINST-2148
 ceph_current="$(rpm -q --queryformat '%{VERSION}' cephadm | awk -F '.' '{print $1"."$2"."$3}')"
-podman pull artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v${ceph_current}
+cmd_retry podman pull artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v${ceph_current}
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v${ceph_current} registry.local/ceph/ceph:v${ceph_current}
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v${ceph_current} registry.local/artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v${ceph_current}
 podman rmi  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v${ceph_current}
-podman pull artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v16.2.7
+cmd_retry podman pull artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v16.2.7
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v16.2.7 registry.local/ceph/ceph:v16.2.7
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v16.2.7 registry.local/artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v16.2.7
 podman rmi  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v16.2.7
-podman pull artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v15.2.15
+cmd_retry podman pull artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v15.2.15
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v15.2.15 registry.local/ceph/ceph:v15.2.15
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v15.2.15 registry.local/artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v15.2.15
 podman rmi  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v15.2.15
-podman pull artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v15.2.16
+cmd_retry podman pull artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v15.2.16
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v15.2.16 registry.local/ceph/ceph:v15.2.16
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v15.2.16 registry.local/artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v15.2.16
 podman rmi  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph:v15.2.16
-podman pull artifactory.algol60.net/csm-docker/stable/quay.io/prometheus/alertmanager:v0.20.0
+cmd_retry podman pull artifactory.algol60.net/csm-docker/stable/quay.io/prometheus/alertmanager:v0.20.0
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/prometheus/alertmanager:v0.20.0 registry.local/prometheus/alertmanager:v0.20.0
 podman rmi  artifactory.algol60.net/csm-docker/stable/quay.io/prometheus/alertmanager:v0.20.0
-podman pull artifactory.algol60.net/csm-docker/stable/quay.io/prometheus/alertmanager:v0.21.0
+cmd_retry podman pull artifactory.algol60.net/csm-docker/stable/quay.io/prometheus/alertmanager:v0.21.0
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/prometheus/alertmanager:v0.21.0 registry.local/prometheus/alertmanager:v0.21.0
 podman rmi  artifactory.algol60.net/csm-docker/stable/quay.io/prometheus/alertmanager:v0.21.0
-podman pull artifactory.algol60.net/csm-docker/stable/quay.io/prometheus/node-exporter:v1.2.2
+cmd_retry podman pull artifactory.algol60.net/csm-docker/stable/quay.io/prometheus/node-exporter:v1.2.2
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/prometheus/node-exporter:v1.2.2 registry.local/prometheus/node-exporter:v1.2.2
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/prometheus/node-exporter:v1.2.2 registry.local/quay.io/prometheus/node-exporter:v1.2.2
 podman rmi  artifactory.algol60.net/csm-docker/stable/quay.io/prometheus/node-exporter:v1.2.2
-podman pull artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph-grafana:8.3.5
+cmd_retry podman pull artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph-grafana:8.3.5
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph-grafana:8.3.5 registry.local/ceph/ceph-grafana:8.3.5
 podman tag  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph-grafana:8.3.5 registry.local/artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph-grafana:8.3.5
 podman rmi  artifactory.algol60.net/csm-docker/stable/quay.io/ceph/ceph-grafana:8.3.5
-podman pull artifactory.algol60.net/csm-docker/stable/ceph/ceph-grafana:6.7.4
+cmd_retry podman pull artifactory.algol60.net/csm-docker/stable/ceph/ceph-grafana:6.7.4
 podman tag  artifactory.algol60.net/csm-docker/stable/ceph/ceph-grafana:6.7.4 registry.local/ceph/ceph-grafana:6.7.4
 podman rmi  artifactory.algol60.net/csm-docker/stable/ceph/ceph-grafana:6.7.4
-podman pull artifactory.algol60.net/csm-docker/stable/prometheus:v2.18.1
+cmd_retry podman pull artifactory.algol60.net/csm-docker/stable/prometheus:v2.18.1
 podman tag  artifactory.algol60.net/csm-docker/stable/prometheus:v2.18.1 registry.local/prometheus/prometheus:v2.18.1
 podman tag  artifactory.algol60.net/csm-docker/stable/prometheus:v2.18.1 registry.local/quay.io/prometheus/prometheus:v2.18.1
 podman rmi  artifactory.algol60.net/csm-docker/stable/prometheus:v2.18.1
-podman pull artifactory.algol60.net/csm-docker/stable/docker.io/registry:2.8.1
+cmd_retry podman pull artifactory.algol60.net/csm-docker/stable/docker.io/registry:2.8.1
 podman tag  artifactory.algol60.net/csm-docker/stable/docker.io/registry:2.8.1 localhost/registry:2.8.1
 
 echo "Image pull complete"
