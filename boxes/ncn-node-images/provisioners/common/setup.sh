@@ -29,4 +29,5 @@ resize_root
 
 echo "Initializing directories and resources"
 mkdir -pv /srv/cray
-cp -prv /tmp/files/* /srv/cray/ && rm -rf /tmp/files
+cp -prv /tmp/files/* /srv/cray/ || true
+rm -rf /tmp/files
