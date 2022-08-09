@@ -104,12 +104,34 @@ function setup-encryption() {
   echo "Installing default encryption configuration setup"
   k8s_encryptiondir="${K8S_PREFIX}/encryption"
   install -dm755 "${k8s_encryptiondir}"
-  install -dm400 /srv/cray/resources/common/encryption-configuration.yaml "${k8s_encryptiondir}/default.yaml"
+  install -m400 /srv/cray/resources/common/encryption-configuration.yaml "${k8s_encryptiondir}/default.yaml"
 
   # This is a nop setup for now, the current encryption is default/identity
   # encryption which doesn't differ with anything today. Just lets etcd writes
   # to go through the encryption machinery.
-  ln -sf "${k8s_encryptiondir}/default.yaml" "${k8s_encryptiondir}/current.yaml"
+  #
+  # Note: Only symlink current to default if isn't already pointing there. If it
+  # points elsewhere that will indicate encryption is on
+  current="${k8s_encryptiondir}/current.yaml"
+  default="${k8s_encryptiondir}/default.yaml"
+
+  if [ ! -h "${current}" ]; then
+    # Initial setup, symlink current to default (identity)
+    echo ln -sf "${default}" "${current}"
+    ln -sf "${default}" "${current}"
+  elif [ -h "${current}" ]; then
+    # This is for the readlink, no amount of quoting satisfies shellcheck with it.
+    #shellcheck disable=SC2086
+    dest="$(readlink -f ${current})"
+    if [ "${dest}" != "${default}" ]; then
+      echo "note: k8s encryption is on using ${dest}"
+    else
+      echo "note: k8s encryption is off"
+    fi
+  else
+    echo "fatal: encryption configuration is in an invalid state ${current} is not a symlink, k8s will not start"
+    exit 1
+  fi
 }
 
 function join() {
