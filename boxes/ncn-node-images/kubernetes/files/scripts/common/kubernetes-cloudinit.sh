@@ -37,9 +37,6 @@ export ETCD_INITIAL_CLUSTER_STRING=$(get-etcd-initial-cluster-members)
 export ETCDCTL_BACKUP_ENDPOINTS=$(get-etcdctl-backup-endpoints)
 initialized_file="/etc/cray/kubernetes/initialized"
 
-# Script constants to reduce copypasta
-K8S_PREFIX=/etc/cray/kubernetes
-
 #
 # Expand the root disk (vshasta only)
 #
@@ -94,24 +91,6 @@ function wait-for-remote-file() {
   done
 }
 
-# Only applicable to control plane nodes, sets up
-# /etc/cray/kubernetes/encryption as needed as the kubelet process now has a
-# switch that requires the files to be present when things are started.
-function setup-encryption() {
-  # Note encryption files/setup is in its own sub directory to ensure the
-  # daemonset doesn't need to possibly have access to any other data than it
-  # truly needs.
-  echo "Installing default encryption configuration setup"
-  k8s_encryptiondir="${K8S_PREFIX}/encryption"
-  install -dm755 "${k8s_encryptiondir}"
-  install -dm400 /srv/cray/resources/common/encryption-configuration.yaml "${k8s_encryptiondir}/default.yaml"
-
-  # This is a nop setup for now, the current encryption is default/identity
-  # encryption which doesn't differ with anything today. Just lets etcd writes
-  # to go through the encryption machinery.
-  ln -sf "${k8s_encryptiondir}/default.yaml" "${k8s_encryptiondir}/current.yaml"
-}
-
 function join() {
   local join_script_remote="$1"
   local join_script_local="/etc/cray/kubernetes/join.sh"
@@ -123,8 +102,6 @@ function join() {
   #
   if [[ "$(hostname)" =~ ^ncn-m ]]; then
     echo "$(cat ${join_script_local}) --apiserver-advertise-address=${K8S_NODE_IP}" > ${join_script_local}
-    # All other control-plane nodes need encryption setups as well.
-    setup-encryption
   fi
 
   chmod 0700 $join_script_local
@@ -426,8 +403,6 @@ if [[ "$(hostname)" == $FIRST_MASTER_HOSTNAME ]] || [[ "$(hostname)" =~ ^$FIRST_
   export CERTIFICATE_KEY=$(cat /etc/cray/kubernetes/certificate-key)
 
   configure-load-balancer-for-master
-
-  setup-encryption
 
   envsubst < /srv/cray/resources/common/kubeadm.cfg > /etc/cray/kubernetes/kubeadm.yaml
   echo "Initializing Kubernetes on the first control plane node, pod cidr $PODS_CIDR, service cidr $SERVICES_CIDR"
