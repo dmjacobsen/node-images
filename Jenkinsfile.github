@@ -522,6 +522,9 @@ pipeline {
             }
         }
         stage('Tests Results') {
+            when {
+                expression { env.TAG_NAME == null && (!(BRANCH_NAME ==~ promotionToken) || (BRANCH_NAME ==~ promotionToken && params.buildAndPublish)) }
+            }
             steps {
                 script {
                     sh "mkdir build-test-results && cp output*/test-results-*.xml build-test-results"
