@@ -496,6 +496,11 @@ build {
     post-processor "shell-local" {
       inline = [
         "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-ncn-google.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi",
+      ]
+      only = ["googlecompute.kubernetes", "googlecompute.storage-ceph"]
+    }
+    post-processor "shell-local" {
+      inline = [
         "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-${source.name}-google.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
       ]
       only = ["googlecompute.kubernetes"]
