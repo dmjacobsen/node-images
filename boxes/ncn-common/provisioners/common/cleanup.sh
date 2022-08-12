@@ -37,6 +37,7 @@ function kernel {
     current_kernel="$(grep kernel-default /srv/cray/csm-rpms/packages/node-image-non-compute-common/base.packages | awk -F '=' '{print $NF}')"
 
     echo "Purging old kernels ... "
+    zypper removelock kernel-default || echo 'No lock to remove'
     sed -i 's/^multiversion.kernels =.*/multiversion.kernels = '"${current_kernel}"'/g' /etc/zypp/zypp.conf
     zypper --non-interactive purge-kernels --details
 
@@ -44,7 +45,7 @@ function kernel {
     zypper addlock kernel-default && zypper locks
         
     echo "Listing currently installed kernel-default RPM:"
-    rpm -qa | grep kernel-default
+    rpm -q kernel-default
 }
 kernel
 

@@ -400,6 +400,13 @@ build {
   provisioner "shell" {
     inline = [
       "bash -c 'goss -g /srv/cray/tests/google/ncn-common-tests.yml validate -f junit | tee /tmp/goss_google_out.xml'",
+    ]
+    only = ["googlecompute.kubernetes", "googlecompute.storage-ceph"]
+  }
+
+  // storage-ceph does not have Google specific tests at this time.
+  provisioner "shell" {
+    inline = [
       "bash -c 'goss -g /srv/cray/tests/google/${source.name}-tests.yml validate -f junit | tee /tmp/goss_${source.name}_google_out.xml'"
     ]
     only = ["googlecompute.kubernetes"]
@@ -420,27 +427,27 @@ build {
   provisioner "file" {
     direction   = "download"
     source      = "/tmp/goss_common_out.xml"
-    destination = "${var.output_directory}/test-results-common.xml"
+    destination = "${var.output_directory}/${source.name}/test-results-common.xml"
   }
 
   provisioner "file" {
     direction   = "download"
     source      = "/tmp/goss_${source.name}_out.xml"
-    destination = "${var.output_directory}/test-results-${source.name}.xml"
+    destination = "${var.output_directory}/${source.name}/test-results-${source.name}.xml"
   }
 
   provisioner "file" {
     direction   = "download"
     source      = "/tmp/goss_google_out.xml"
-    destination = "${var.output_directory}/test-results-ncn-google.xml"
-    only        = ["googlecompute.kubernetes"]
-    #    only        = ["googlecompute.kubernetes", "googlecompute.storage-ceph"]
+    destination = "${var.output_directory}/${source.name}/test-results-ncn-google.xml"
+    only        = ["googlecompute.kubernetes", "googlecompute.storage-ceph"]
   }
 
+  // storage-ceph does not have Google specific tests at this time.
   provisioner "file" {
     direction   = "download"
     source      = "/tmp/goss_${source.name}_google_out.xml"
-    destination = "${var.output_directory}/test-results-${source.name}-google.xml"
+    destination = "${var.output_directory}/${source.name}/test-results-${source.name}-google.xml"
     only        = ["googlecompute.kubernetes"]
     #    only        = ["googlecompute.kubernetes", "googlecompute.storage-ceph"]
   }
@@ -448,7 +455,7 @@ build {
   provisioner "file" {
     direction   = "download"
     source      = "/tmp/goss_metal_out.xml"
-    destination = "${var.output_directory}/test-results-ncn-metal.xml"
+    destination = "${var.output_directory}/${source.name}/test-results-ncn-metal.xml"
     only        = [
       "qemu.kubernetes", "virtualbox-ovf.kubernetes", "qemu.storage-ceph",
       "virtualbox-ovf.storage-ceph"
@@ -458,7 +465,7 @@ build {
   provisioner "file" {
     direction   = "download"
     source      = "/tmp/goss_${source.name}_metal_out.xml"
-    destination = "${var.output_directory}/test-results-${source.name}-metal.xml"
+    destination = "${var.output_directory}/${source.name}/test-results-${source.name}-metal.xml"
     only        = [
       "qemu.kubernetes", "virtualbox-ovf.kubernetes", "qemu.storage-ceph",
       "virtualbox-ovf.storage-ceph"
@@ -489,27 +496,28 @@ build {
   post-processors {
     post-processor "shell-local" {
       inline = [
-        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-common.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi",
-        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-${source.name}.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
+        "if ! grep ' failures=.0. ' ${var.output_directory}/${source.name}/test-results-common.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi",
+        "if ! grep ' failures=.0. ' ${var.output_directory}/${source.name}/test-results-${source.name}.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
       ]
     }
     post-processor "shell-local" {
       inline = [
-        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-ncn-google.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi",
+        "if ! grep ' failures=.0. ' ${var.output_directory}/${source.name}/test-results-ncn-google.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi",
       ]
       only = ["googlecompute.kubernetes", "googlecompute.storage-ceph"]
     }
+    // storage-ceph does not have Google specific tests at this time, but it does have general ncn-google tests.
     post-processor "shell-local" {
       inline = [
-        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-${source.name}-google.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
+        "if ! grep ' failures=.0. ' ${var.output_directory}/${source.name}/test-results-${source.name}-google.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
       ]
       only = ["googlecompute.kubernetes"]
       #      only = ["googlecompute.kubernetes", "googlecompute.storage-ceph"]
     }
     post-processor "shell-local" {
       inline = [
-        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-ncn-metal.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi",
-        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-${source.name}-metal.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
+        "if ! grep ' failures=.0. ' ${var.output_directory}/${source.name}/test-results-ncn-metal.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi",
+        "if ! grep ' failures=.0. ' ${var.output_directory}/${source.name}/test-results-${source.name}-metal.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
       ]
       only = [
         "qemu.kubernetes", "virtualbox-ovf.kubernetes", "qemu.storage-ceph",
