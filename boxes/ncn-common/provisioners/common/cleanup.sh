@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 #
 # MIT License
@@ -23,8 +23,7 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-
-set -ex
+set -exo pipefail
 
 # Ensure that only the desired kernel version may be installed.
 # Clean up old kernels, if any. We should only ship with a single kernel.
@@ -34,7 +33,11 @@ function kernel {
 
     # Grab this from csm-rpms, the running kernel may not match the kernel we installed and want until the image is rebooted.
     # This ensures we lock to what we want installed.
-    current_kernel="$(grep kernel-default /srv/cray/csm-rpms/packages/node-image-non-compute-common/base.packages | awk -F '=' '{print $NF}')"
+    current_kernel="$(grep kernel-default /srv/cray/csm-rpms/packages/node-image-common/base.packages | awk -F '=' '{print $NF}')"
+    if [ -z "$current_kernel" ]; then
+        echo >&2 'Failed to resolve the desired kernel version.'
+        exit 1
+    fi
 
     echo "Purging old kernels ... "
     zypper removelock kernel-default || echo 'No lock to remove'

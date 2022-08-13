@@ -119,14 +119,6 @@
       <product>SLE_HPC</product>
     </products>
     <packages config:type='list'>
-<!-- START: CSM-RPMs dependencies -->
-      <package>jq</package>
-<!-- END: CSM-RPMs dependencies -->
-<!-- START: Ansible dependencies -->
-      <package>python3</package>
-      <package>python3-pip</package>
-<!-- END: Ansible dependencies -->
-      <package>squashfs</package>
       <package>wicked</package>
     </packages>
     <patterns config:type='list'>

@@ -9,6 +9,29 @@ images for any distributable medium.
 
 The listed software below will equip a local machine or buildserver to build for any medium (`.squashfs`, `.vbox`, and `.qcow2`).
 
+=== Contributing
+
+Each box in `boxes/` has several builders defined in the `.pkr.hcl` files.
+
+These builders each invoke `provisioners` and contain `files/` that're sorted into various contexts:
+
+* `common`
+* `google`
+* `metal`
+* `foo`
+
+All provisioner and file changes and additions should ideally go into `common`, the other groups such as `google` exist
+to run specific commands necessary for Google Cloud Compute. Anything not in `common` should be kept as minimal as
+possible as to keep consistency between our artifacts.
+
+For example:
+
+* Installing CEPH, and locking the kernel are actions we want to be the same across all artifact types (`common`).
+* Installing and configuring iLO management software and daemons is something we do not have on any medium except for real hardware (`metal`).
+* A meta file for a Google import should only exist on `google` artifacts.
+
+For help deciding where something should go, please inquire within the https://app.slack.com/client/T02FUJE3F/ncn-devel[#ncn-devel] Slack channel.
+
 === Necessary Software
 
 * `envsubst` (optional; for base layer builds)
@@ -26,6 +49,8 @@ For any ISO, copy it into the `iso/` directory.
 ==== SuSE Linux Enterprise
 
 Files that have been tested and verified to work:
+
+These can be downloaded from https://www.suse.com/download/sles/
 
 * `SLE-15-SP2-Full-x86_64-GM-Media1.iso`
 * `SLE-15-SP3-Full-x86_64-GM-Media1.iso`
@@ -46,17 +71,15 @@ Furthermore, there may be additional repos used that are defined in `csm-rpms` w
 If you need to adjust the version of `csm-rpms` in your repo, or make changes to the `csm-rpms` code base, you will
 need to install git-vendor, which uses git submodules for managing dependencies.
 
-  * `git vendor list` will show you the managed repos
-  * `git vendor update csm-rpms release/1.2` will checkout the `release/1.2` branch of `csm-rpms`
-  * All code for `csm-rpms` is stored in the `vendor` directory
+* `git vendor list` will show you the managed repos
+* `git vendor update csm-rpms release/1.2` will checkout the `release/1.2` branch of `csm-rpms`
+* All code for `csm-rpms` is stored in the `vendor` directory
 
 Both `csm-rpms` and `metal-provision` are vendored.
 
 == Build Steps
 
 === Setup
-
-
 
 * Install packer
 +
@@ -73,7 +96,6 @@ If you are building QEMU images in MacOS, you will need to adjust specific QEMU 
 * MacOS requires HVF for acceleration
 * MacOS uses Cocoa for output
 * `-var 'qemu_display=cocoa' -var 'qemu_accelerator=hvf'`
-
 
 [#_prerequisites]
 === Prerequisites
@@ -149,15 +171,8 @@ If the <<_base_layer>> section was followed, then this layer can be built as is.
 +
 [source,bash]
 ----
-mkdir output-sles15-base
-curl -f -o output-sles15-base/sles15-base.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/sles15-base/\\[RELEASE\\]/sles15-base-\\[RELEASE\\].qcow2
-----
-* Vagrant
-+
-[source,bash]
-----
-mkdir output-sles15-base-vagrant
-curl -f -o output-sles15-base-vagrant/sles15-base.box https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/sles15-base/\\[RELEASE\\]/sles15-base-\\[RELEASE\\].box
+mkdir output-sles15-base-qemu
+curl -f -o output-sles15-base-qemu/sles15-base.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/sles15-base/\\[RELEASE\\]/sles15-base-\\[RELEASE\\].qcow2
 ----
 +
 [sidebar]
@@ -167,51 +182,26 @@ VirtualBox is not listed for two reasons; VirtualBox is not published to Artifac
 +
 [source,bash]
 ----
-packer build -only=qemu.ncn-common -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' boxes/ncn-common
+packer build -only=qemu.ncn-common -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' -var 'artifactory_user=$ARTIFACTORY_USER' -var 'artifactory_token=$ARTIFACTORY_TOKEN' boxes/ncn-common
 ----
 * VirtualBox
 +
 [source,bash]
 ----
-packer build -only=virtualbox-ovf.ncn-common -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' boxes/ncn-common
+packer build -only=virtualbox-ovf.ncn-common -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' -var 'artifactory_user=$ARTIFACTORY_USER' -var 'artifactory_token=$ARTIFACTORY_TOKEN' boxes/ncn-common
 ----
 
 Once the image has built, the `.qcow2` file will be placed in the `output-ncn-common` directory.
 
-==== Pre-Install Toolkit Layer
-
-If the <<_base_layer>> section was followed, then this layer can be built as is. If the base layer is being skipped, then a stable base needs to be downloaded.
-
-.Steps for building
-. Download a stable base if one wasn't created by completing the <<_base_layer>> section.
-+
-* Qemu
-+
-[source,bash]
-----
-mkdir output-sles15-base
-curl -f -o output-sles15-base/sles15-base.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/sles15-base/\\[RELEASE\\]/sles15-base-\\[RELEASE\\].qcow2
-----
-+
-[sidebar]
-VirtualBox is not listed for two reasons; VirtualBox is not published to Artifactory, and VirtualBox uses the `.qcow2` file from qemu.
-. Build.
-* Qemu
-+
-[source,bash]
-----
-packer build -only=qemu.pit-common -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' boxes/pit-common
-----
-* VirtualBox
-+
-[source,bash]
-----
-packer build -only=virtualbox-ovf.pit-common -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' boxes/pit-common
-----
-
 ==== Non-Compute Node Image Layer
 
 If the <<_common_layer>> section was followed, then this layer can be built as is. If the common layer is being skipped, then a stable common needs to be downloaded.
+
+This builds a the following NCN artifacts:
+
+* kubernetes
+* pre-install-toolkit
+* storage-ceph
 
 .Steps for building
 . Download a stable common if one wasn't created by completing the <<_common_layer>> section.
@@ -220,21 +210,21 @@ If the <<_common_layer>> section was followed, then this layer can be built as i
 +
 [source,bash]
 ----
-mkdir output-ncn-common
-curl -f -o output-ncn-common-base/ncn-common.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/ncn-common/\\[RELEASE\\]/ncn-common-\\[RELEASE\\].qcow2
+mkdir output-ncn-common-qemu
+curl -f -o output-ncn-common-base-qemu/ncn-common.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/ncn-common/\\[RELEASE\\]/ncn-common-\\[RELEASE\\].qcow2
 ----
 . Build.
 * Qemu
 +
 [source,bash]
 ----
-packer build -only=qemu.* -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' boxes/ncn-node-images
+packer build -only=qemu.* -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' -var 'artifactory_user=$ARTIFACTORY_USER' -var 'artifactory_token=$ARTIFACTORY_TOKEN' boxes/ncn-node-images
 ----
 * VirtualBox
 +
 [source,bash]
 ----
-packer build -only=virtualbox-ovf.* -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' boxes/ncn-node-images`
+packer build -only=virtualbox-ovf.* -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' -var 'artifactory_user=$ARTIFACTORY_USER' -var 'artifactory_token=$ARTIFACTORY_TOKEN' boxes/ncn-node-images`
 ----
 
 Once the images has built, the `.qcow2` file will be placed in the `output-ncn-node-images` directory.
@@ -262,6 +252,7 @@ ARTIFACTORY_USER=<username>
 ARTFACTORY_TOKEN=<api token>
 ----
 . Download the Artifacts
+* QCOWs
 +
 [source,bash]
 ----
@@ -270,6 +261,13 @@ curl -f -o ncn-common.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifac
 curl -f -o pre-install-toolkit.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/pre-install-toolkit/\\[RELEASE\\]/pre-install-toolkit-\\[RELEASE\\].qcow2
 curl -f -o kubernetes.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/kubernetes/\\[RELEASE\\]/kubernetes-\\[RELEASE\\].qcow2
 curl -f -o storage-ceph.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/storage-ceph/\\[RELEASE\\]/storage-ceph-\\[RELEASE\\].qcow2
+----
+* SquashFS
++
+[source,bash]
+----
+curl -f -o kubernetes.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/kubernetes/\\[RELEASE\\]/kubernetes-\\[RELEASE\\].squashfs
+curl -f -o storage-ceph.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/storage-ceph/\\[RELEASE\\]/storage-ceph-\\[RELEASE\\].squashfs
 ----
 
 === Versioning

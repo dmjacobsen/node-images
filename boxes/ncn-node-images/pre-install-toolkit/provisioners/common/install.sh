@@ -22,58 +22,8 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
+set -euo pipefail
 
-set -ex
-
-# Ensure that only the desired kernel version may be installed.
-# Clean up old kernels, if any. We should only ship with a single kernel.
-# Lock the kernel to prevent inadvertent updates.
-function kernel {
-    local current_kernel
-
-    # Grab this from csm-rpms, the running kernel may not match the kernel we installed and want until the image is rebooted.
-    # This ensures we lock to what we want installed.
-    current_kernel="$(grep kernel-default /srv/cray/csm-rpms/packages/node-image-non-compute-common/base.packages | awk -F '=' '{print $NF}')"
-
-    echo "Purging old kernels ... "
-    sed -i 's/^multiversion.kernels =.*/multiversion.kernels = '"${current_kernel}"'/g' /etc/zypp/zypp.conf
-    zypper --non-interactive purge-kernels --details
-
-    echo "Locking the kernel to ${current_kernel}"
-    zypper addlock kernel-default && zypper locks
-    
-    echo "Listing currently installed kernel-default RPM:"
-    rpm -qa | grep kernel-default
-}
-kernel
-
-# Install generic Python tools; ensures both the default python and any other installed python system versions have 
-# basic buildtools.
-# NOTE: /usr/bin/python3 should point to the Python 3 version installed by python3.rpm, this is set in metal-provision.
-function setup_python {
-    local pythons
-
-    local        pip_ver='21.3.1'
-    local      build_ver='0.8.0'
-    local setuptools_ver='59.6.0'
-    local      wheel_ver='0.37.1'
-    local virtualenv_ver='20.15.1'
-
-    readarray -t pythons < <(find /usr/bin/ -regex '.*python3\.[0-9]+')
-    printf 'Discovered [%s] python binaries: %s\n' "${#pythons[@]}" "${pythons[*]}"
-    for python in "${pythons[@]}"; do
-        $python -m pip install -U "pip==$pip_ver" || $python -m ensurepip
-        $python -m pip install -U \
-            "build==$build_ver" \
-            "setuptools==$setuptools_ver" \
-            "virtualenv==$virtualenv_ver" \
-            "wheel==$wheel_ver" 
-    done
-}
-setup_python
-
-echo "Ensuring /srv/cray/utilities locations are available for use system-wide"
-ln -s /srv/cray/utilities/common/craysys/craysys /bin/craysys
 echo "export PYTHONPATH=\"/srv/cray/utilities/common\"" >> /etc/profile.d/cray.sh
 
 echo "Enabling/disabling services"
@@ -81,7 +31,7 @@ systemctl disable mdcheck_continue.service
 systemctl disable mdcheck_start.service
 systemctl disable mdmonitor-oneshot.service
 systemctl disable mdmonitor.service
-systemctl disable postfix.service && systemctl stop postfix.service
+systemctl disable --now postfix.service
 systemctl enable apache2.service
 systemctl enable basecamp.service
 systemctl enable ca-certificates.service
@@ -105,6 +55,13 @@ systemctl enable wickedd-dhcp4.service
 systemctl enable wickedd-dhcp6.service
 systemctl enable wickedd-nanny.service
 systemctl set-default multi-user.target
+
+# Setup apparmor for dnsmasq
+# TODO: Move this into the metal-ipxe.spec file.
+# NOTE: editing local/usr.sbin.dnsmasq apparmor profile does not work
+echo 'Adding `/var/www/boot` to apparmor for dnsmasq'
+sed -i -E 's/(@\{TFTP_DIR\}=.*)/\1 \/var\/www\/boot/g' /etc/apparmor.d/usr.sbin.dnsmasq
+rm -fv /etc/dnsmasq.conf.rpmnew
 
 #======================================
 # Add custom aliases and environment

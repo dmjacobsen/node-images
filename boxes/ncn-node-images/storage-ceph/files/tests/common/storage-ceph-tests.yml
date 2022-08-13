@@ -96,12 +96,8 @@ service:
 process:
   sshd:
     running: true
-  dnsmasq:
-    running: false
   cron:
     running: true
-  dnsmasq:
-    running: false
 package:
   cephadm:
     installed: true
@@ -112,8 +108,6 @@ package:
   curl:
     installed: true
   craycli:
-    installed: true
-  dnsmasq:
     installed: true
   ethtool:
     installed: true

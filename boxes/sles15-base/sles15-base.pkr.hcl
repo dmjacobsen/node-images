@@ -1,3 +1,29 @@
+#
+# MIT License
+#
+# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+
+# Metal artifacts are published to Artifactory and intended for running on real hardware.
+# These are shipped to customers.
 source "qemu" "sles15-base" {
   boot_command = [
     "<esc><enter><wait>",
@@ -28,11 +54,14 @@ source "qemu" "sles15-base" {
   ssh_port            = 22
   ssh_username        = "${var.ssh_username}"
   ssh_wait_timeout    = "${var.ssh_wait_timeout}"
-  output_directory    = "${var.output_directory}"
+  output_directory    = "${var.output_directory}-qemu"
   vnc_bind_address    = "${var.vnc_bind_address}"
   vm_name             = "${var.image_name}.${var.qemu_format}"
 }
 
+# Google artifacts built and deployed into GCP and used in vShasta.
+# NOTE: Unfortunately the googlecompute builder can not be used to build these base images, so
+# qemu is used instead.
 source "qemu" "sles15-google" {
   boot_command = [
     "<esc><enter><wait>",
@@ -64,6 +93,8 @@ source "qemu" "sles15-google" {
   vm_name             = "${var.image_name}-google.${var.qemu_format}"
 }
 
+# Not built by CI/CD; local-build-only.
+# Intention: VirtualBox emulator for metal artifacts.
 source "virtualbox-iso" "sles15-base" {
   boot_command = [
     "<esc><enter><wait>",
@@ -90,7 +121,7 @@ source "virtualbox-iso" "sles15-base" {
   ssh_port             = 22
   ssh_username         = "${var.ssh_username}"
   ssh_wait_timeout     = "${var.ssh_wait_timeout}"
-  output_directory     = "${var.output_directory}"
+  output_directory     = "${var.output_directory}-virtualbox-iso"
   output_filename      = "${var.image_name}"
   vboxmanage           = [
     [
@@ -111,9 +142,9 @@ source "virtualbox-iso" "sles15-base" {
 
 build {
   sources = [
-    "source.virtualbox-iso.sles15-base",
+    "source.qemu.sles15-base",
     "source.qemu.sles15-google",
-    "source.qemu.sles15-base"
+    "source.virtualbox-iso.sles15-base"
   ]
 
   provisioner "shell" {
