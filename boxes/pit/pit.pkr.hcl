@@ -1,4 +1,4 @@
-source "googlecompute" "pit-common" {
+source "googlecompute" "pit" {
   instance_name           = "vshasta-${var.image_name}-builder-${var.artifact_version}"
   project_id              = "${var.google_destination_project_id}"
   network_project_id      = "${var.google_network_project_id}"
@@ -19,7 +19,7 @@ source "googlecompute" "pit-common" {
   omit_external_ip        = "${var.google_use_internal_ip}"
 }
 
-source "qemu" "pit-common" {
+source "qemu" "pit" {
   accelerator         = "${var.qemu_accelerator}"
   cpus                = "${var.cpus}"
   disk_cache          = "${var.disk_cache}"
@@ -45,7 +45,7 @@ source "qemu" "pit-common" {
   format              = "${var.qemu_format}"
 }
 
-source "virtualbox-ovf" "pit-common" {
+source "virtualbox-ovf" "pit" {
   source_path      = "${var.vbox_source_path}"
   format           = "${var.vbox_format}"
   checksum         = "none"
@@ -77,9 +77,9 @@ source "virtualbox-ovf" "pit-common" {
 
 build {
   sources = [
-    "source.googlecompute.pit-common",
-    "source.qemu.pit-common",
-    "source.virtualbox-ovf.pit-common"
+    "source.googlecompute.pit",
+    "source.qemu.pit",
+    "source.virtualbox-ovf.pit"
   ]
 
   provisioner "shell" {
@@ -106,13 +106,13 @@ build {
 
   provisioner "shell" {
     script = "${path.root}/provisioners/google/setup.sh"
-    only   = ["googlecompute.pit-common"]
+    only   = ["googlecompute.pit"]
   }
 
   # Placeholder: if/when Metal needs a setup.sh (e.g. actions before RPMs are installed).
   #  provisioner "shell" {
   #    script = "${path.root}/provisioners/metal/setup.sh"
-  #    only = ["qemu.pit-common", "virtualbox-ovf.pit-common"]
+  #    only = ["qemu.pit", "virtualbox-ovf.pit"]
   #  }
 
   provisioner "shell" {
@@ -138,7 +138,7 @@ build {
       "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; get-current-package-list /tmp/initial.packages explicit'",
       "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; get-current-package-list /tmp/initial.deps.packages deps'"
     ]
-    only = ["qemu.pit-common", "virtualbox-ovf.pit-common"]
+    only = ["qemu.pit", "virtualbox-ovf.pit"]
   }
 
   // Install packages by context (e.g. base (a.k.a. common), google, or metal)
@@ -154,7 +154,7 @@ build {
       "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/cray-pre-install-toolkit/metal.packages'"
     ]
     valid_exit_codes = [0, 123]
-    only             = ["qemu.pit-common", "virtualbox-ovf.pit-common"]
+    only             = ["qemu.pit", "virtualbox-ovf.pit"]
   }
 
   // Install all generic installers first by context (e.g. common, google, and metal).
@@ -164,7 +164,7 @@ build {
 
   provisioner "shell" {
     script = "${path.root}/provisioners/metal/install.sh"
-    only   = ["qemu.pit-common", "virtualbox-ovf.pit-common"]
+    only   = ["qemu.pit", "virtualbox-ovf.pit"]
   }
 
   provisioner "shell" {
@@ -173,7 +173,7 @@ build {
       "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; get-current-package-list /tmp/installed.deps.packages deps'",
       "bash -c 'zypper lr -e /tmp/installed.repos'"
     ]
-    only = ["qemu.pit-common", "virtualbox-ovf.pit-common"]
+    only = ["qemu.pit", "virtualbox-ovf.pit"]
   }
 
   provisioner "shell" {
@@ -194,17 +194,11 @@ build {
       "/tmp/initial.deps.packages",
       "/tmp/initial.packages",
       "/tmp/installed.deps.packages",
-      "/tmp/installed.packages"
+      "/tmp/installed.packages",
+      "/tmp/installed.repos"
     ]
     destination = "${var.output_directory}/"
-    only        = ["qemu.pit-common", "virtualbox-ovf.pit-common"]
-  }
-
-  provisioner "file" {
-    direction   = "download"
-    source      = "/tmp/installed.repos"
-    destination = "${var.output_directory}/installed.repos"
-    only        = ["qemu.pit-common", "virtualbox-ovf.pit-common"]
+    only        = ["qemu.pit", "virtualbox-ovf.pit"]
   }
 
   provisioner "shell" {
@@ -213,61 +207,61 @@ build {
 
   provisioner "shell" {
     inline = [
-      "bash -c 'goss -g /srv/cray/tests/common/pit-common-tests.yml validate -f junit | tee /tmp/goss_out.xml'"
+      "bash -c 'goss -g /srv/cray/tests/common/pit-tests.yml validate -f junit | tee /tmp/goss_${source.name}_out.xml'"
     ]
   }
 
   provisioner "shell" {
     inline = [
-      "bash -c 'goss -g /srv/cray/tests/google/pit-common-tests.yml validate -f junit | tee /tmp/goss_google_out.xml'"
+      "bash -c 'goss -g /srv/cray/tests/google/pit-tests.yml validate -f junit | tee /tmp/goss_${source.name}_google_out.xml'"
     ]
-    only = ["googlecompute.pit-common"]
+    only = ["googlecompute.pit"]
   }
 
   provisioner "shell" {
     inline = [
-      "bash -c 'goss -g /srv/cray/tests/metal/pit-common-tests.yml validate -f junit | tee /tmp/goss_metal_out.xml'"
+      "bash -c 'goss -g /srv/cray/tests/metal/pit-tests.yml validate -f junit | tee /tmp/goss_${source.name}_metal_out.xml'"
     ]
-    only = ["qemu.pit-common", "virtualbox-ovf.pit-common"]
+    only = ["qemu.pit", "virtualbox-ovf.pit"]
   }
 
   provisioner "file" {
     direction   = "download"
-    source      = "/tmp/goss_out.xml"
-    destination = "${var.output_directory}/test-results.xml"
+    source      = "/tmp/goss_${source.name}_out.xml"
+    destination = "${var.output_directory}/test-results-${source.type}.${source.name}.xml"
   }
 
   provisioner "file" {
     direction   = "download"
-    source      = "/tmp/goss_google_out.xml"
-    destination = "${var.output_directory}/test-results-google.xml"
-    only        = ["googlecompute.pit-common"]
+    source      = "/tmp/goss_${source.name}_google_out.xml"
+    destination = "${var.output_directory}/test-results-${source.type}.${source.name}-google.xml"
+    only        = ["googlecompute.pit"]
   }
 
   provisioner "file" {
     direction   = "download"
-    source      = "/tmp/goss_metal_out.xml"
-    destination = "${var.output_directory}/test-results-metal.xml"
-    only        = ["qemu.pit-common", "virtualbox-ovf.pit-common"]
+    source      = "/tmp/goss_${source.name}_metal_out.xml"
+    destination = "${var.output_directory}/test-results-${source.type}.${source.name}-metal.xml"
+    only        = ["qemu.pit", "virtualbox-ovf.pit"]
   }
 
   post-processors {
     post-processor "shell-local" {
       inline = [
-        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
+        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-${source.type}.${source.name}.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
       ]
     }
     post-processor "shell-local" {
       inline = [
-        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-google.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
+        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-${source.type}.${source.name}-google.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
       ]
-      only = ["googlecompute.pit-common"]
+      only = ["googlecompute.pit"]
     }
     post-processor "shell-local" {
       inline = [
-        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-metal.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
+        "if ! grep ' failures=.0. ' ${var.output_directory}/test-results-${source.type}.${source.name}-metal.xml; then echo >&2 'Error: goss test failures found! See build output for details'; exit 1; fi"
       ]
-      only = ["qemu.pit-common", "virtualbox-ovf.ncn-common"]
+      only = ["qemu.pit", "virtualbox-ovf.pit"]
     }
   }
 }

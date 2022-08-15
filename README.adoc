@@ -267,7 +267,7 @@ ARTFACTORY_TOKEN=<api token>
 ----
 curl -f -o sles15-base.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/sles15-base/\\[RELEASE\\]/sles15-base-\\[RELEASE\\].qcow2
 curl -f -o ncn-common.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/ncn-common/\\[RELEASE\\]/ncn-common-\\[RELEASE\\].qcow2
-curl -f -o pit-common.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/pit-common/\\[RELEASE\\]/pit-common-\\[RELEASE\\].qcow2
+curl -f -o pre-install-toolkit.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/pre-install-toolkit/\\[RELEASE\\]/pre-install-toolkit-\\[RELEASE\\].qcow2
 curl -f -o kubernetes.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/kubernetes/\\[RELEASE\\]/kubernetes-\\[RELEASE\\].qcow2
 curl -f -o storage-ceph.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/storage-ceph/\\[RELEASE\\]/storage-ceph-\\[RELEASE\\].qcow2
 ----

@@ -20,7 +20,7 @@ variable "headless" {
 
 variable "image_name" {
   type    = string
-  default = "pit-common"
+  default = "pre-install-toolkit"
 }
 
 variable "memory" {
@@ -61,7 +61,7 @@ variable "ssh_wait_timeout" {
 
 variable "output_directory" {
   type    = string
-  default = "output-pit-common"
+  default = "output-pit"
 }
 
 variable "artifact_version" {
@@ -136,7 +136,7 @@ variable "google_machine_type" {
 
 variable "google_destination_image_family" {
   type    = string
-  default = "vshasta-pit-common-rc"
+  default = "vshasta-pre-install-toolkit-rc"
 }
 
 variable "google_destination_project_network" {
