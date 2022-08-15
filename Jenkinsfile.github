@@ -47,7 +47,6 @@ def rebuildCommonImage = env.TAG_NAME == null ? true : false
 
 // Temporary toggles; useful for certain contexts.
 def disablePIT = false
-def disableGoogle = false   // FIXME: Once SLES15SP4 is supported in Google, set this to false.
 
 // Disable pr-merge builds; node-image pipeline doesn't use the PR images at all.
 if (env.BRANCH_NAME ==~ ~"^PR-\\d+") {
@@ -132,9 +131,6 @@ pipeline {
             }
             parallel {
                 stage('SLES') {
-                    when {
-                        expression { !disableGoogle }
-                    }
                     steps {
                         withCredentials([
                                 file(credentialsId: 'google-image-manager', variable: 'GOOGLE_CLOUD_SA_KEY'),
@@ -180,7 +176,7 @@ pipeline {
                                 def sourceImage = "${base}-${VERSION}"
                                 def arguments
                                 def props
-                                def source
+                                def source = "${ARTIFACTS_DIRECTORY_BASE}/${sourceImage}"
 
                                 if (!params.rebuildBaseImage) {
                                     source = "${STABLE_BASE}/${base}/${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}/${base}-${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}"
@@ -245,7 +241,7 @@ pipeline {
                                 def sourceImage = "${base}-${VERSION}"
                                 def arguments
                                 def props
-                                def source
+                                def source = "${ARTIFACTS_DIRECTORY_BASE}/${sourceImage}"
 
                                 if (!params.rebuildBaseImage) {
                                     source = "${STABLE_BASE}/${base}/${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}/${base}-${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}"
