@@ -265,7 +265,7 @@ pipeline {
                                 publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_PIT}", env.VERSION)
 
                                 props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${source}"
-                                publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_PIT}", imageName: 'pit', version: env.VERSION, props: props)
+                                publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_PIT}", imageName: 'pre-install-toolkit', version: env.VERSION, props: props)
                             }
                         }
                     }
