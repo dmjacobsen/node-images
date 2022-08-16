@@ -42,7 +42,7 @@ def buildAndPublish = env.TAG_NAME == null && !(env.BRANCH_NAME ==~ promotionTok
 def sourceBuildVersion = '[RELEASE]' // Pulls the latest release
 
 // Rebuild toggles; never build base unless explicitly required, always rebuild common.
-def rebuildBaseImage = false
+def rebuildBaseImage = env.TAG_NAME == null ? true : false
 def rebuildCommonImage = env.TAG_NAME == null ? true : false
 
 // Temporary toggles; useful for certain contexts.
