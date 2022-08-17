@@ -1,2 +1,2 @@
-*                        @Cray-HPE/metal
-boxes/ncn-node-images/*  @Cray-HPE/platform-engineering
+*                           @Cray-HPE/reviewer-csm-rpms
+packages/*/metal.packages   @Cray-HPE/metal

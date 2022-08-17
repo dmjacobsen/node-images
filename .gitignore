@@ -1,12 +1,4 @@
 # ignore template files
+google.repos
 hpe.repos
 suse.repos
-output-ncn-common
-output-ncn-node-images
-output-pit-common
-output-sles15-base
-scripts/google/.variables
-iso
-autoinst.xml
-autoinst-google.xml
-ansible
