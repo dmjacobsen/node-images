@@ -187,7 +187,7 @@ pipeline {
                                                 googleCloudFamily: googleSourceImageFamily
                                         )
                                     }
-                                    dir("${env.ARTIFACTS_DIRECTORY_BASE}") {
+                                    dir("${env.ARTIFACTS_DIRECTORY_BASE}-qemu") {
                                         httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceImage}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
                                     }
                                 }
@@ -240,7 +240,7 @@ pipeline {
                                                 googleCloudFamily: googleSourceImageFamily
                                         )
                                     }
-                                    dir("${env.ARTIFACTS_DIRECTORY_COMMON}") {
+                                    dir("${env.ARTIFACTS_DIRECTORY_COMMON}-qemu") {
                                         httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceImage}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
                                     }
                                 }
@@ -303,7 +303,7 @@ pipeline {
                                                 googleCloudFamily: googleSourceImageFamily
                                         )
                                     }
-                                    dir("${env.ARTIFACTS_DIRECTORY_COMMON}") {
+                                    dir("${env.ARTIFACTS_DIRECTORY_COMMON}-qemu") {
                                         httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceImage}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
                                     }
                                 }
@@ -348,7 +348,7 @@ pipeline {
                                                 googleCloudFamily: googleSourceImageFamily
                                         )
                                     }
-                                    dir("${env.ARTIFACTS_DIRECTORY_COMMON}") {
+                                    dir("${env.ARTIFACTS_DIRECTORY_COMMON}-qemu") {
                                         httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceImage}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
                                     }
                                 }
