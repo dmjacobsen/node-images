@@ -111,10 +111,15 @@ pipeline {
                     steps {
                         script {
                             dir('iso') {
-                                script {
-                                    httpRequest(authentication: 'artifactory-algol60', outputFile: "${ISO}", responseHandle: 'NONE', url: "${env.ISO_URL}/${env.ISO}")
-                                }
+                                httpRequest(authentication: 'artifactory-algol60', outputFile: "${ISO}", responseHandle: 'NONE', url: "${env.ISO_URL}/${env.ISO}")
                             }
+                        }
+                    }
+                }
+                stage('Packer Plugins') {
+                    steps {
+                        script {
+                            sh 'packer init boxes/ncn-node-images/variables.pkr.hcl'
                         }
                     }
                 }
@@ -135,7 +140,6 @@ pipeline {
                             script {
                                 def arguments
                                 arguments = "-except=virtualbox-iso.* -var 'source_iso_uri=iso/${env.ISO}' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
-                                sh 'packer init boxes/sles15-base/'
                                 publishCsmImages.build(arguments, 'boxes/sles15-base/')
                                 publishCsmImages.prepareArtifacts("${env.ARTIFACTS_DIRECTORY_BASE}-qemu", VERSION)
                                 publishCsmImages.prepareArtifacts("${env.ARTIFACTS_DIRECTORY_BASE}-google", VERSION)
@@ -193,7 +197,6 @@ pipeline {
                                 }
 
                                 arguments = "-except=virtualbox-ovf.* -only='*.ncn-common' -var 'google_source_image_name=${googleSourceArtifact}' -var 'source_iso_uri=${env.ARTIFACTS_DIRECTORY_BASE}-qemu/${sourceImage}.qcow2' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
-                                sh 'packer init boxes/ncn-common/'
                                 publishCsmImages.build(arguments, 'boxes/ncn-common/')
                                 publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_COMMON}-qemu", VERSION)
                                 
@@ -246,7 +249,6 @@ pipeline {
                                 }
 
                                 arguments = "-except='virtualbox-ovf.*' -only='*.kubernetes' -var 'google_source_image_name=${googleSourceArtifact}' -var 'source_iso_uri=${env.ARTIFACTS_DIRECTORY_COMMON}-qemu/${sourceImage}.qcow2' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
-                                sh 'packer init boxes/ncn-node-images/variables.pkr.hcl'
                                 publishCsmImages.build(arguments, 'boxes/ncn-node-images/')
                                 publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_K8S}-qemu", env.VERSION)
 
@@ -309,7 +311,6 @@ pipeline {
                                 }
 
                                 arguments = "-except='virtualbox-ovf.*' -only='*.pre-install-toolkit' -var 'google_source_image_name=${googleSourceArtifact}' -var 'source_iso_uri=${env.ARTIFACTS_DIRECTORY_COMMON}-qemu/${sourceImage}.qcow2' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
-                                sh 'packer init boxes/ncn-node-images/variables.pkr.hcl'
                                 publishCsmImages.build(arguments, 'boxes/ncn-node-images/')
                                 publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_PIT}-qemu", env.VERSION)
                                 props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${sourceImage}"
@@ -354,7 +355,6 @@ pipeline {
                                 }
 
                                 arguments = "-except='virtualbox-ovf.*' --only='*.storage-ceph' -var 'google_source_image_name=${googleSourceArtifact}' -var 'source_iso_uri=${env.ARTIFACTS_DIRECTORY_COMMON}-qemu/${sourceImage}.qcow2' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
-                                sh 'packer init boxes/ncn-node-images/variables.pkr.hcl'
                                 publishCsmImages.build(arguments, 'boxes/ncn-node-images/')
                                 publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_CEPH}-qemu", env.VERSION)
                                 props = "build.number=${VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${sourceImage}"
