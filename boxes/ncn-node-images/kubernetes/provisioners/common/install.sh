@@ -102,7 +102,7 @@ modprobe overlay
 modprobe br_netfilter
 
 echo "Installing kubernetes python client"
-python3 -m pip install --ignore-installed PyYAML
+python3 -m pip install --ignore-installed 'PyYAML<6.0'
 #
 # CSM 1.2 shipped with 23.6.0, so we need equal to
 # or greater than that version
