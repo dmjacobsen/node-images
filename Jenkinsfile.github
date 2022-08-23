@@ -52,6 +52,7 @@ if (env.BRANCH_NAME ==~ ~"^PR-\\d+") {
     return
 }
 
+def artifactoryURL = 'https://artifactory.algol60.net/artifactory'
 pipeline {
     agent {
         label "metal-gcp-builder-large"
@@ -70,10 +71,10 @@ pipeline {
         ARTIFACTS_DIRECTORY_PIT = "output-ncn-node-images/pre-install-toolkit"
         ARTIFACTS_DIRECTORY_CEPH = "output-ncn-node-images/storage-ceph"
         ISO = "SLE-15-SP3-Online-x86_64-GM-Media1.iso"
-        ISO_URL = "https://artifactory.algol60.net/artifactory/os-images"
+        ISO_URL = "${artifactoryURL}/os-images"
         NPROC = sh(returnStdout: true, script: "nproc").trim()
         NRAM = '8196'
-        STABLE_BASE = "https://artifactory.algol60.net/artifactory/csm-images/stable"
+        STABLE_BASE = "${artifactoryURL}/csm-images/stable"
         VERSION = setImageVersion(commitHashShort: GIT_COMMIT[0..6])
     }
 
@@ -172,35 +173,40 @@ pipeline {
                             script {
 
                                 def base = "sles15-base"
-                                def googleSourceArtifact = "vshasta-${base}-${VERSION}"
                                 def googleSourceImageFamily = "vshasta-${base}"
-                                def sourceImage = "${base}-${VERSION}"
+                                def googleSourceArtifact
+                                def sourceArtifact
                                 def arguments
                                 def props
-                                def source = "${ARTIFACTS_DIRECTORY_BASE}/${sourceImage}"
+                                def source
 
+                                // If the previous layer wasn't built in this job, resolve the artifacts.
                                 if (!params.rebuildBaseLayers) {
-                                    source = "${STABLE_BASE}/${base}/${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}/${base}-${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}"
+                                    // If we're not pulling the latest artifact, resolve the necessary IDs.
                                     if (sourceBuildVersion != "[RELEASE]") {
                                         source = nodeImageHelpers.getArtifactorySourceArtifactFromId(source, sourceBuildVersion)
+                                        sourceArtifact = "${base}-${sourceBuildVersion}"
                                         googleSourceArtifact = nodeImageHelpers.getGoogleCloudSourceArtifactFromId(googleSourceImageFamily, sourceBuildVersion)
+                                        // If we are pulling the latest artifact, resolve th enecessary IDs.
                                     } else {
-                                        googleSourceArtifact = getGoogleCloudSourceArtifact(
-                                                googleCloudSaKey: GOOGLE_CLOUD_SA_KEY,
-                                                googleCloudProject: params.googleSourceImageProjectId,
-                                                googleCloudFamily: googleSourceImageFamily
-                                        )
+                                        source = "${STABLE_BASE}/${base}/${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}/${base}-${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}"
+                                        response = httpRequest(authentication: 'artifactory-algol60', url: "${artifactoryURL}/api/search/latestVersion?g=stable&a=${base}")
+                                        sourceArtifactVersion = response.content
+                                        sourceArtifact = "${base}-${sourceArtifactVersion}"
+                                        googleSourceArtifact = "vshasta-${base}-${sourceArtifactVersion.replaceAll("\\.", "-")}"
                                     }
                                     dir("${env.ARTIFACTS_DIRECTORY_BASE}-qemu") {
-                                        httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceImage}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
+                                        httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceArtifact}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
                                     }
+                                } else {
+                                    // If the previous layer was built, then use that local artifact.
+                                    sourceArtifact = "${base}-${VERSION}"
+                                    googleSourceArtifact = "vshasta-${base}-${VERSION}"
                                 }
-
-                                arguments = "-except=virtualbox-ovf.* -only='*.ncn-common' -var 'google_source_image_name=${googleSourceArtifact}' -var 'source_iso_uri=${env.ARTIFACTS_DIRECTORY_BASE}-qemu/${sourceImage}.qcow2' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
+                                arguments = "-except=virtualbox-ovf.* -only='*.ncn-common' -var 'google_source_image_name=${googleSourceArtifact}' -var 'source_iso_uri=${env.ARTIFACTS_DIRECTORY_BASE}-qemu/${sourceArtifact}.qcow2' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
                                 publishCsmImages.build(arguments, 'boxes/ncn-common/')
                                 publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_COMMON}-qemu", VERSION)
-                                
-                                props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${sourceImage}"
+                                props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${sourceArtifact}"
                                 publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_COMMON}-qemu", imageName: 'ncn-common', version: env.VERSION, props: props)
                             }
                         }
@@ -224,35 +230,40 @@ pipeline {
                             script {
                                 
                                 def base = "ncn-common"
-                                def googleSourceArtifact = "vshasta-${base}-${VERSION}"
                                 def googleSourceImageFamily = "vshasta-${base}"
-                                def sourceImage = "${base}-${VERSION}"
+                                def googleSourceArtifact
+                                def sourceArtifact
                                 def arguments
                                 def props
-                                def source = "${ARTIFACTS_DIRECTORY_COMMON}/${sourceImage}"
+                                def source
 
+                                // If the previous layer wasn't built in this job, resolve the artifacts.
                                 if (!params.rebuildCommonLayers) {
-                                    source = "${STABLE_BASE}/${base}/${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}/${base}-${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}"
+                                    // If we're not pulling the latest artifact, resolve the necessary IDs.
                                     if (sourceBuildVersion != "[RELEASE]") {
                                         source = nodeImageHelpers.getArtifactorySourceArtifactFromId(source, sourceBuildVersion)
+                                        sourceArtifact = "${base}-${sourceBuildVersion}"
                                         googleSourceArtifact = nodeImageHelpers.getGoogleCloudSourceArtifactFromId(googleSourceImageFamily, sourceBuildVersion)
+                                        // If we are pulling the latest artifact, resolve th enecessary IDs.
                                     } else {
-                                        googleSourceArtifact = getGoogleCloudSourceArtifact(
-                                                googleCloudSaKey: GOOGLE_CLOUD_SA_KEY,
-                                                googleCloudProject: params.googleSourceImageProjectId,
-                                                googleCloudFamily: googleSourceImageFamily
-                                        )
+                                        source = "${STABLE_BASE}/${base}/${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}/${base}-${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}"
+                                        response = httpRequest(authentication: 'artifactory-algol60', url: "${artifactoryURL}/api/search/latestVersion?g=stable&a=${base}")
+                                        sourceArtifactVersion = response.content
+                                        sourceArtifact = "${base}-${sourceArtifactVersion}"
+                                        googleSourceArtifact = "vshasta-${base}-${sourceArtifactVersion.replaceAll("\\.", "-")}"
                                     }
                                     dir("${env.ARTIFACTS_DIRECTORY_COMMON}-qemu") {
-                                        httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceImage}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
+                                        httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceArtifact}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
                                     }
+                                } else {
+                                    // If the previous layer was built, then use that local artifact.
+                                    sourceArtifact = "${base}-${VERSION}"
+                                    googleSourceArtifact = "vshasta-${base}-${VERSION}"
                                 }
-
-                                arguments = "-except='virtualbox-ovf.*' -only='*.kubernetes' -var 'google_source_image_name=${googleSourceArtifact}' -var 'source_iso_uri=${env.ARTIFACTS_DIRECTORY_COMMON}-qemu/${sourceImage}.qcow2' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
+                                arguments = "-except='virtualbox-ovf.*' -only='*.kubernetes' -var 'google_source_image_name=${googleSourceArtifact}' -var 'source_iso_uri=${env.ARTIFACTS_DIRECTORY_COMMON}-qemu/${sourceArtifact}.qcow2' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
                                 publishCsmImages.build(arguments, 'boxes/ncn-node-images/')
                                 publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_K8S}-qemu", env.VERSION)
-
-                                props = "build.number=${VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${sourceImage}"
+                                props = "build.number=${VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${sourceArtifact}"
                                 publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_K8S}-qemu", imageName: 'kubernetes', version: env.VERSION, props: props)
                             }
                         }
@@ -286,34 +297,40 @@ pipeline {
                             script {
 
                                 def base = "ncn-common"
-                                def googleSourceArtifact = "vshasta-${base}-${VERSION}"
                                 def googleSourceImageFamily = "vshasta-${base}"
-                                def sourceImage = "${base}-${VERSION}"
+                                def googleSourceArtifact
+                                def sourceArtifact
                                 def arguments
                                 def props
-                                def source = "${ARTIFACTS_DIRECTORY_COMMON}/${sourceImage}"
+                                def source
 
-                                if (!params.rebuildBaseLayers) {
-                                    source = "${STABLE_BASE}/${base}/${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}/${base}-${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}"
+                                // If the previous layer wasn't built in this job, resolve the artifacts.
+                                if (!params.rebuildCommonLayers) {
+                                    // If we're not pulling the latest artifact, resolve the necessary IDs.
                                     if (sourceBuildVersion != "[RELEASE]") {
                                         source = nodeImageHelpers.getArtifactorySourceArtifactFromId(source, sourceBuildVersion)
+                                        sourceArtifact = "${base}-${sourceBuildVersion}"
                                         googleSourceArtifact = nodeImageHelpers.getGoogleCloudSourceArtifactFromId(googleSourceImageFamily, sourceBuildVersion)
+                                        // If we are pulling the latest artifact, resolve th enecessary IDs.
                                     } else {
-                                        googleSourceArtifact = getGoogleCloudSourceArtifact(
-                                                googleCloudSaKey: GOOGLE_CLOUD_SA_KEY,
-                                                googleCloudProject: params.googleSourceImageProjectId,
-                                                googleCloudFamily: googleSourceImageFamily
-                                        )
+                                        source = "${STABLE_BASE}/${base}/${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}/${base}-${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}"
+                                        response = httpRequest(authentication: 'artifactory-algol60', url: "${artifactoryURL}/api/search/latestVersion?g=stable&a=${base}")
+                                        sourceArtifactVersion = response.content
+                                        sourceArtifact = "${base}-${sourceArtifactVersion}"
+                                        googleSourceArtifact = "vshasta-${base}-${sourceArtifactVersion.replaceAll("\\.", "-")}"
                                     }
                                     dir("${env.ARTIFACTS_DIRECTORY_COMMON}-qemu") {
-                                        httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceImage}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
+                                        httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceArtifact}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
                                     }
+                                } else {
+                                    // If the previous layer was built, then use that local artifact.
+                                    sourceArtifact = "${base}-${VERSION}"
+                                    googleSourceArtifact = "vshasta-${base}-${VERSION}"
                                 }
-
-                                arguments = "-except='virtualbox-ovf.*' -only='*.pre-install-toolkit' -var 'google_source_image_name=${googleSourceArtifact}' -var 'source_iso_uri=${env.ARTIFACTS_DIRECTORY_COMMON}-qemu/${sourceImage}.qcow2' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
+                                arguments = "-except='virtualbox-ovf.*' -only='*.pre-install-toolkit' -var 'google_source_image_name=${googleSourceArtifact}' -var 'source_iso_uri=${env.ARTIFACTS_DIRECTORY_COMMON}-qemu/${sourceArtifact}.qcow2' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
                                 publishCsmImages.build(arguments, 'boxes/ncn-node-images/')
                                 publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_PIT}-qemu", env.VERSION)
-                                props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${sourceImage}"
+                                props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${sourceArtifact}"
                                 publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_PIT}-qemu", imageName: 'pre-install-toolkit', version: env.VERSION, props: props)
                             }
                         }
@@ -330,34 +347,40 @@ pipeline {
                             script {
 
                                 def base = "ncn-common"
-                                def googleSourceArtifact = "vshasta-${base}-${VERSION}"
                                 def googleSourceImageFamily = "vshasta-${base}"
-                                def sourceImage = "${base}-${VERSION}"
+                                def googleSourceArtifact
+                                def sourceArtifact
                                 def arguments
                                 def props
-                                def source = "${ARTIFACTS_DIRECTORY_COMMON}/${base}"
+                                def source
 
+                                // If the previous layer wasn't built in this job, resolve the artifacts.
                                 if (!params.rebuildCommonLayers) {
-                                    source = "${STABLE_BASE}/${base}/${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}/${base}-${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}"
+                                    // If we're not pulling the latest artifact, resolve the necessary IDs.
                                     if (sourceBuildVersion != "[RELEASE]") {
                                         source = nodeImageHelpers.getArtifactorySourceArtifactFromId(source, sourceBuildVersion)
+                                        sourceArtifact = "${base}-${sourceBuildVersion}"
                                         googleSourceArtifact = nodeImageHelpers.getGoogleCloudSourceArtifactFromId(googleSourceImageFamily, sourceBuildVersion)
+                                        // If we are pulling the latest artifact, resolve th enecessary IDs.
                                     } else {
-                                        googleSourceArtifact = getGoogleCloudSourceArtifact(
-                                                googleCloudSaKey: GOOGLE_CLOUD_SA_KEY,
-                                                googleCloudProject: params.googleSourceImageProjectId,
-                                                googleCloudFamily: googleSourceImageFamily
-                                        )
+                                        source = "${STABLE_BASE}/${base}/${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}/${base}-${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}"
+                                        response = httpRequest(authentication: 'artifactory-algol60', url: "${artifactoryURL}/api/search/latestVersion?g=stable&a=${base}")
+                                        sourceArtifactVersion = response.content
+                                        sourceArtifact = "${base}-${sourceArtifactVersion}"
+                                        googleSourceArtifact = "vshasta-${base}-${sourceArtifactVersion.replaceAll("\\.", "-")}"
                                     }
                                     dir("${env.ARTIFACTS_DIRECTORY_COMMON}-qemu") {
-                                        httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceImage}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
+                                        httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceArtifact}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
                                     }
+                                } else {
+                                    // If the previous layer was built, then use that local artifact.
+                                    sourceArtifact = "${base}-${VERSION}"
+                                    googleSourceArtifact = "vshasta-${base}-${VERSION}"
                                 }
-
-                                arguments = "-except='virtualbox-ovf.*' --only='*.storage-ceph' -var 'google_source_image_name=${googleSourceArtifact}' -var 'source_iso_uri=${env.ARTIFACTS_DIRECTORY_COMMON}-qemu/${sourceImage}.qcow2' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
+                                arguments = "-except='virtualbox-ovf.*' --only='*.storage-ceph' -var 'google_source_image_name=${googleSourceArtifact}' -var 'source_iso_uri=${env.ARTIFACTS_DIRECTORY_COMMON}-qemu/${sourceArtifact}.qcow2' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
                                 publishCsmImages.build(arguments, 'boxes/ncn-node-images/')
                                 publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_CEPH}-qemu", env.VERSION)
-                                props = "build.number=${VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${sourceImage}"
+                                props = "build.number=${VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${sourceArtifact}"
                                 publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_CEPH}-qemu", imageName: 'storage-ceph', version: env.VERSION, props: props)
                             }
                         }
