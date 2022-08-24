@@ -169,7 +169,8 @@ build {
     environment_vars = [
       "DOCKER_IMAGE_REGISTRY=${var.docker_image_registry}",
       "K8S_IMAGE_REGISTRY=${var.k8s_image_registry}",
-      "QUAY_IMAGE_REGISTRY=${var.quay_image_registry}"
+      "QUAY_IMAGE_REGISTRY=${var.quay_image_registry}",
+      "GHCR_IMAGE_REGISTRY=${var.ghcr_image_registry}"
     ]
     script = "${path.root}/${source.name}/provisioners/common/install.sh"
   }

@@ -66,6 +66,11 @@ variable "quay_image_registry" {
   default = "artifactory.algol60.net/csm-docker/stable/quay.io"
 }
 
+variable "ghcr_image_registry" {
+  type    = string
+  default = "artifactory.algol60.net/csm-docker/stable/ghcr.io"
+}
+
 variable "headless" {
   type    = bool
   default = true

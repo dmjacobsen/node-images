@@ -176,7 +176,7 @@ crictl pull ${DOCKER_IMAGE_REGISTRY}/nfvpe/multus:${MULTUS_PREVIOUS_VERSION}
 echo "Pre-pulling images for current version of K8S from artifactory"
 crictl pull ${DOCKER_IMAGE_REGISTRY}/weaveworks/weave-kube:${WEAVE_VERSION}
 crictl pull ${DOCKER_IMAGE_REGISTRY}/weaveworks/weave-npc:${WEAVE_VERSION}
-crictl pull ${DOCKER_IMAGE_REGISTRY}/nfvpe/multus:${MULTUS_VERSION}
+crictl pull ${GHCR_IMAGE_REGISTRY}/k8snetworkplumbingwg/multus-cni:${MULTUS_VERSION}
 crictl pull ${K8S_IMAGE_REGISTRY}/coredns:${COREDNS_VERSION}
 crictl pull ${K8S_IMAGE_REGISTRY}/kube-apiserver:"v${KUBERNETES_PULL_VERSION}"
 crictl pull ${K8S_IMAGE_REGISTRY}/kube-controller-manager:"v${KUBERNETES_PULL_VERSION}"
@@ -192,3 +192,4 @@ echo "Writing docker registry sources to disk for use during cloud-init"
 echo "export K8S_IMAGE_REGISTRY=${K8S_IMAGE_REGISTRY}" >> /srv/cray/resources/common/vars.sh
 echo "export DOCKER_IMAGE_REGISTRY=${DOCKER_IMAGE_REGISTRY}" >> /srv/cray/resources/common/vars.sh
 echo "export QUAY_IMAGE_REGISTRY=${QUAY_IMAGE_REGISTRY}" >> /srv/cray/resources/common/vars.sh
+echo "export GHCR_IMAGE_REGISTRY=${GHCR_IMAGE_REGISTRY}" >> /srv/cray/resources/common/vars.sh
