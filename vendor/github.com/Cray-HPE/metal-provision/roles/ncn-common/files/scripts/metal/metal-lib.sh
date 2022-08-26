@@ -232,7 +232,7 @@ function enable_amsd() {
         echo 'amsd is not installed, ignoring amsd services'
         return 0
     fi
-    echo scanning vendor ... && vendor=$(ipmitool fru | grep -i 'board mfg' | tail -n 1 | cut -d ':' -f2 | tr -d ' ')
+    echo scanning vendor ... && vendor=$(ipmitool fru | grep -i 'board mfg' | grep -v -i 'board mfg date' | tail -n 1 | cut -d ':' -f2 | tr -d ' ')
     case $vendor in
         *Marvell*|HP|HPE)
             echo Enabling iLO services for detected vendor: $vendor
@@ -324,7 +324,7 @@ Configuring UEFI boot-order...
 these use the same commands from the manual page:
     https://github.com/Cray-HPE/docs-csm/blob/main/background/ncn_boot_workflow.md#setting-order
 EOM
-    echo scanning vendor ... && vendor=$(ipmitool fru | grep -i 'board mfg' | tail -n 1 | cut -d ':' -f2 | tr -d ' ')
+    echo scanning vendor ... && vendor=$(ipmitool fru | grep -i 'board mfg' | grep -v -i 'board mfg date' | tail -n 1 | cut -d ':' -f2 | tr -d ' ')
     hostname=${hostname:-$(hostname)}
     # Add vendors here; add like-vendors on the same case statement.
     # "like-vendors" means their efibootmgr outboot matches
